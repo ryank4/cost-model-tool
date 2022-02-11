@@ -1,7 +1,13 @@
+import json
+from datetime import datetime
+
+from bson import json_util
 from flask import Flask, request, jsonify
 from pricing.compute.ec2.ec2 import EC2
 import pricing.compute.ec2.ec2_attributes as ec2_attributes
 from flask_cors import CORS, cross_origin
+import db.test as db
+import pricing.compute.ec2.descibe_ec2_instances as describe_ec2
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"http://localhost:3000/*": {"origins": "*"}})
@@ -44,12 +50,100 @@ def ec2_instance_types():
 
     return instance_types
 
+@app.route('/attributes/ec2/instancetypeinfo', methods=['POST'])
+@cross_origin()
+def ec2_instance_type_info():
+    request_data = request.get_json()
+    instance_type = request_data
+    instance_type_info = ec2_attributes.describe_instance_types(instance_type)
+
+    return instance_type_info
+
 @app.route('/attributes/ec2/regions', methods=['GET'])
 @cross_origin()
 def ec2_regions():
     regions = ec2_attributes.get_ec2_regions()
 
     return regions
+
+@app.route('/pricing/save', methods=['POST'])
+@cross_origin()
+def save():
+    request_data = request.get_json()
+    cost_model = {'name': "Test Cost Model", 'serviceDetails': []}
+    index = 0
+    total_cost = 0
+
+    for data in request_data:
+        services = {}
+        services['service'] = 'EC2'
+        services['os'] = data['os']
+        services['instance_type'] = data['instanceType']
+        services['region'] = data['region']
+        services['price'] = data['price']
+        total_cost += services['price']
+
+        cost_model['serviceDetails'].append(services)
+        index += 1
+
+    cost_model['time'] = datetime.now()
+    cost_model['total cost'] = total_cost
+
+    # cost_model_document = {
+    #     "name": "test cost model",
+    #     "os": os,
+    #     "instance_type": instance_type,
+    #     "region": region,
+    #     "price": price,
+    #     "time": datetime.now()
+    # }
+
+    save_doc = db.save_cost_model(cost_model)
+
+    if save_doc:
+        res = {
+            "response": "Cost Model Saved Successfully"
+        }
+    else:
+        res = {
+            "response": "Error Saving Cost Model"
+        }
+
+    return res
+
+@app.route('/pricing/load', methods=['GET'])
+@cross_origin()
+def load():
+    #request_data = request.get_json()
+    load_doc = db.load_cost_model("Test Cost Model")
+
+    if load_doc is not False:
+        cost_model_data = {
+            "id": json.loads(json_util.dumps(load_doc['_id'])),
+            "name": load_doc['name'],
+            "serviceDetails": load_doc['serviceDetails'],
+            "totalCost": load_doc['total cost']
+        }
+        return cost_model_data
+    else:
+        return {
+            "response": "Error Loading Cost Model"
+        }
+
+@app.route('/ec2/describe', methods=['GET'])
+@cross_origin()
+def ec2_describe_instance_type():
+    request_data = request.get_json()
+
+    instance_type = request_data['instanceType']
+
+    instance_type_info = describe_ec2.describe_instance_types(instance_type)
+
+    return instance_type_info
+
+
+
+
 @app.route('/query-example')
 def query_example():
     # if key doesn't exist, returns None

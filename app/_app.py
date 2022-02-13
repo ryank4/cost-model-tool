@@ -70,33 +70,29 @@ def ec2_regions():
 @cross_origin()
 def save():
     request_data = request.get_json()
-    cost_model = {'name': "Test Cost Model", 'serviceDetails': []}
-    index = 0
+    cost_model = {}
     total_cost = 0
+    service_details = {}
 
+    count = 0
     for data in request_data:
-        services = {}
-        services['service'] = 'EC2'
-        services['os'] = data['os']
-        services['instance_type'] = data['instanceType']
-        services['region'] = data['region']
-        services['price'] = data['price']
-        total_cost += services['price']
+        if data['index'] == 'name':
+            cost_model['name'] = data['value']
+        # find the number of services by counting ids
+        if data['index'] == 'id':
+            # create new dict for each service
+            service = service_details[str(count)] = {}
+            count += 1
+        else:
+            # add values
+            key = data['index']
+            service[key] = data['value']
+            if data['index'] == 'price':
+                total_cost += data['value']
 
-        cost_model['serviceDetails'].append(services)
-        index += 1
-
+    cost_model['serviceDetails'] = service_details
     cost_model['time'] = datetime.now()
     cost_model['total cost'] = total_cost
-
-    # cost_model_document = {
-    #     "name": "test cost model",
-    #     "os": os,
-    #     "instance_type": instance_type,
-    #     "region": region,
-    #     "price": price,
-    #     "time": datetime.now()
-    # }
 
     save_doc = db.save_cost_model(cost_model)
 

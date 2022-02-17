@@ -6,8 +6,10 @@ from flask import Flask, request, jsonify
 from pricing.compute.ec2.ec2 import EC2
 import pricing.compute.ec2.ec2_attributes as ec2_attributes
 from flask_cors import CORS, cross_origin
-import db.test as db
+import db.cost_model_db as db
 import pricing.compute.ec2.descibe_ec2_instances as describe_ec2
+import pricing.compute.ec2.data_transfer_costs as data_cost
+from pricing.utility import mapping
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"http://localhost:3000/*": {"origins": "*"}})
@@ -23,16 +25,36 @@ def ec2_price():
 
     os = request_data['os']
     instance_type = request_data['instance_type']
-    region = request_data['region']
+
+    all_regions = mapping.region_mapping_dict
+    provided_region = request_data['region']
+
+    for index, value in all_regions.items():
+        if value == provided_region:
+            region = index
 
     ec2 = EC2()
     value = ec2.get_instance_price(os, instance_type, region)
     price = float(value) * 730
+
+    data_intra = float(request_data['dataIntra'])
+    data_intra_cost = data_cost.calculate_intra_region_data_cost(data_intra)
+
+    to = request_data['dataOutTo']
+    data_out = float(request_data['dataOut'])
+    data_out_cost = data_cost.calculate_outbound_data_cost(to, data_out)
+
+    data_transfer_costs = data_out_cost + data_intra_cost
+
     res = {}
     res['os'] = os
     res['instance_type'] = instance_type
     res['region'] = region
-    res['price'] = price
+
+    if price == 0:
+        res['price'] = 0
+    else:
+        res['price'] = float("{:.2f}".format(price)) + data_transfer_costs
 
     return res
 
@@ -82,6 +104,8 @@ def save():
         if data['index'] == 'id':
             # create new dict for each service
             service = service_details[str(count)] = {}
+            key = data['index']
+            service[key] = data['value']
             count += 1
         else:
             # add values
@@ -107,15 +131,14 @@ def save():
 
     return res
 
-@app.route('/pricing/load', methods=['GET'])
+@app.route('/pricing/load_one', methods=['POST'])
 @cross_origin()
-def load():
-    #request_data = request.get_json()
-    load_doc = db.load_cost_model("Test Cost Model")
+def load_one():
+    cost_model_name = request.get_json()
+    load_doc = db.load_cost_model_by_name(cost_model_name)
 
     if load_doc is not False:
         cost_model_data = {
-            "id": json.loads(json_util.dumps(load_doc['_id'])),
             "name": load_doc['name'],
             "serviceDetails": load_doc['serviceDetails'],
             "totalCost": load_doc['total cost']
@@ -125,6 +148,19 @@ def load():
         return {
             "response": "Error Loading Cost Model"
         }
+
+
+@app.route('/pricing/load_all', methods=['GET'])
+@cross_origin()
+def load_all():
+    loaded_docs = db.load_all_cost_models()
+    cost_models = {}
+    index = 0
+    for document in loaded_docs:
+        cost_models[index] = document['name']
+        index += 1
+    print(loaded_docs)
+    return cost_models
 
 @app.route('/ec2/describe', methods=['GET'])
 @cross_origin()

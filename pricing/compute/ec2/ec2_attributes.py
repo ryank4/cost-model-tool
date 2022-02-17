@@ -40,7 +40,7 @@ def get_ec2_regions():
         index += 1
     print(regions)
 
-    return regions
+    return data
 
 def describe_instance_types(instance_type):
     client = boto3.client('ec2')

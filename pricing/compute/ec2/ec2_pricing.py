@@ -17,7 +17,7 @@ class EC2:
             if region == key:
                 region_name = value
                 break
-        price = 0
+
         ec2_price_per_hour = 0
         try:
             box_usage = mapping.box_usage
@@ -38,18 +38,14 @@ class EC2:
 
             for value in data['PriceList']:
                 json_value = json.loads(value)
-                #pp = pprint.PrettyPrinter()
-                #pp.pprint(json_value)
 
             price = extract.extract_values(json_value, 'USD')
-            #print(price)
             ec2_price_per_hour = price[0]
 
         except Exception as e:
             print(str(e))
 
         return ec2_price_per_hour
-
 
     def get_instance_price2(self, region, os, vcpu, memory):
         for key, value in self.region_mapping_dict.items():

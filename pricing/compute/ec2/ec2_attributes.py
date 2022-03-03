@@ -26,21 +26,13 @@ def get_ec2_instance_types():
     for value in data:
         instance_types[index] = value['Value']
         index += 1
-    print(instance_types)
 
     return instance_types
 
 def get_ec2_regions():
-    data = mapping.region_mapping_dict
+    regions = mapping.region_mapping_dict
 
-    regions = {}
-    index = 1
-    for value in data:
-        regions[index] = value
-        index += 1
-    print(regions)
-
-    return data
+    return regions
 
 def describe_instance_types(instance_type):
     client = boto3.client('ec2')
@@ -49,7 +41,7 @@ def describe_instance_types(instance_type):
     instance_type_info = {}
     for i in info:
         instance_type_info['vCPUs'] = i['VCpuInfo']['DefaultVCpus']
-        instance_type_info['Memory'] = math.floor(i['MemoryInfo']['SizeInMiB'] / 1000)
+        instance_type_info['Memory(GiB)'] = math.floor(i['MemoryInfo']['SizeInMiB'] / 1000)
         instance_type_info['Network'] = i['NetworkInfo']['NetworkPerformance']
         try:
             gpu_info = i['GpuInfo']['Gpus']

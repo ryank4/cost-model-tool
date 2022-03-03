@@ -1,4 +1,4 @@
-from pricing.compute.ec2.ec2 import EC2
+from pricing.compute.ec2.ec2_pricing import EC2
 
 os = 'Windows'
 instance_type = 't3a.xlarge'
@@ -17,6 +17,6 @@ ec2_price2 = float(value) * 730
 instance2 = "Instance 2 (US)"
 
 print("---------Price Per Month---------")
-print("EC2 {0} price: {1}".format(instance1, ec2_price1))
-print("EC2 {0} price: {1}".format(instance2, ec2_price2))
+print("ec2 {0} price: {1}".format(instance1, ec2_price1))
+print("ec2 {0} price: {1}".format(instance2, ec2_price2))
 

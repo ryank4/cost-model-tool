@@ -6,13 +6,22 @@ client = ConfigureClient().client
 
 def get_all_services():
     try:
-        service_code_list = []
-        data = client.describe_services()
-        for value in data['Services']:
-            service_code_list.append(json.dumps(value['ServiceCode']))
-       # print(service_code_list)
-        return service_code_list
+        paginator = client.get_paginator('describe_services')
+        response_iterator = paginator.paginate(
+            PaginationConfig={
+                'PageSize': 100
+            }
+        )
 
+        services = []
+        for response in response_iterator:
+            for service in response["Services"]:
+                services.append(json.dumps(service['ServiceCode']))
+        # data = client.describe_services()
+        # for value in data['Services']:
+        #     service_code_list.append(json.dumps(value['ServiceCode']))
+        # return service_code_list
+        return services
     except Exception as e:
         return e
 
@@ -49,23 +58,12 @@ def get_attribute_values(service_code, attribute_name):
 
     return instance_types
 
-def get_products(region):
+def get_products(service, filters):
     paginator = client.get_paginator('get_products')
 
     response_iterator = paginator.paginate(
-        ServiceCode="AmazonEC2",
-        Filters=[
-            {
-                'Type': 'TERM_MATCH',
-                'Field': 'location',
-                'Value': region
-            },
-            {
-                'Type': 'TERM_MATCH',
-                'Field': 'instanceType',
-                'Value': 'm5.large'
-            }
-        ],
+        ServiceCode=service,
+        Filters=filters,
         PaginationConfig={
             'PageSize': 100
         }
@@ -79,28 +77,42 @@ def get_products(region):
 
     print(products)
 
-def test(service_code, attribute_name):
-    paginator = client.get_paginator('get_attribute_values')
-
-    response_iterator = paginator.paginate(
-        ServiceCode=service_code,
-        AttributeName=attribute_name,
-        PaginationConfig={
-            'PageSize': 100
-        }
-    )
-
-    instance_types = []
-    for response in response_iterator:
-        for instance_type_value in response["AttributeValues"]:
-            instance_types.append(instance_type_value)
-
-    return instance_types
+# def test(service_code, attribute_name):
+#     paginator = client.get_paginator('get_attribute_values')
+#
+#     response_iterator = paginator.paginate(
+#         ServiceCode=service_code,
+#         AttributeName=attribute_name,
+#         PaginationConfig={
+#             'PageSize': 100
+#         }
+#     )
+#
+#     instance_types = []
+#     for response in response_iterator:
+#         for instance_type_value in response["AttributeValues"]:
+#             instance_types.append(instance_type_value)
+#
+#     return instance_types
 #aws = AWS_Services()
 #test('AmazonEC2', 'instanceType')
-#describe_service('AmazonS3')
-#get_attribute_values('AmazonS3', 'toLocation')
-#get_products('EU (Ireland)')
+print(get_all_services())
+print(describe_service('AWSELB'))
+print(get_attribute_values('AWSELB', 'operation'))
+Filters=[
+            {
+                'Type': 'TERM_MATCH',
+                'Field': 'location',
+                'Value': 'EU (Ireland)'
+            },
+            {
+                'Type': 'TERM_MATCH',
+                'Field': 'operation',
+                'Value': 'LoadBalancing:Network'
+            }
+        ]
+
+get_products('AWSELB', Filters)
 '''
 aws.get_all_services()
 aws.describe_service('AmazonEC2')

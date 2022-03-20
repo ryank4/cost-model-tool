@@ -1,8 +1,8 @@
 import json
 
 from pricing.config.boto3_config import ConfigureClient
-import pricing.utility.extract as extract
-import pricing.utility.mapping as mapping
+import pricing.utils.extract as extract
+import pricing.utils.mapping as mapping
 
 
 def add_values(storage_dict, value_range, key):

@@ -2,9 +2,10 @@ from flask import request, Blueprint
 from flask_cors import cross_origin
 
 from pricing.compute.ec2.ec2_pricing import EC2
+from pricing.network.elb_pricing import ELB
 from pricing.storage.s3.s3 import S3
 
-from pricing.utility import mapping
+from pricing.utils import mapping
 import pricing.compute.ec2.data_transfer_costs as data_cost
 
 
@@ -43,7 +44,7 @@ def ec2_price():
     if price == 0:
         res['price'] = 0
     else:
-        res['price'] = float("{:.2f}".format(price)) + data_transfer_costs
+        res['price'] = round(price + data_transfer_costs, 2)
 
     return res
 
@@ -74,9 +75,39 @@ def s3_price():
 
     price = storage_price + requests1_price + requests2_price + data_returned_price + data_scanned_price + data_out_cost
 
+    return {"price": round(price, 2)}
+
+
+@price_routes.route('/pricing/elb', methods=['POST'])
+@cross_origin()
+def elb_price():
+    request_data = request.get_json()
+
+    region = request_data['region']
+
+    tcp_processed_bytes = int(request_data['tcpProcessedBytes'])
+    tcp_new_connections = int(request_data['tcpNewConnections'])
+    tcp_avg_connection_duration = int(request_data['tcpAvgConnectionDuration'])
+
+    udp_processed_bytes = int(request_data['udpProcessedBytes'])
+    udp_new_connections = int(request_data['udpNewConnections'])
+    udp_avg_connection_duration = int(request_data['udpAvgConnectionDuration'])
+
+    tls_processed_bytes = int(request_data['tlsProcessedBytes'])
+    tls_new_connections = int(request_data['tlsNewConnections'])
+    tls_avg_connection_duration = int(request_data['tlsAvgConnectionDuration'])
+
+    elb = ELB()
+
+    tcp_price = elb.calc_tcp_traffic(region, tcp_processed_bytes, tcp_new_connections, tcp_avg_connection_duration)
+    udp_price = elb.calc_udp_traffic(region, udp_processed_bytes, udp_new_connections, udp_avg_connection_duration)
+    tls_price = elb.calc_tls_traffic(region, tls_processed_bytes, tls_new_connections, tls_avg_connection_duration)
+
+    nlb_price = elb.calc_nlb_charge(region)
+    nlcu_price = elb.calc_total_nlcu_charge(tcp_price, udp_price, tls_price)
+
+    price = elb.calc_total_monthly_cost(nlb_price, nlcu_price)
+
     return {"price": price}
-
-
-
 
 

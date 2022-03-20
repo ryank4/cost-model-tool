@@ -2,8 +2,8 @@ import math
 
 import boto3
 
-import pricing.utility.aws_utility as aws_util
-from pricing.utility import mapping
+import pricing.utils.aws_utility as aws_util
+from pricing.utils import mapping
 
 
 def get_ec2_operating_systems():

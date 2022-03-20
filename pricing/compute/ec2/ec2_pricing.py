@@ -1,11 +1,8 @@
-import difflib as dl
 import json
-import pprint
 
 from pricing.config.boto3_config import ConfigureClient
-import pricing.utility.extract as extract
-import pricing.utility.mapping as mapping
-
+import pricing.utils.extract as extract
+import pricing.utils.mapping as mapping
 
 class EC2:
     def __init__(self):

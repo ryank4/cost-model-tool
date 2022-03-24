@@ -2,6 +2,8 @@ from flask import request, Blueprint
 from flask_cors import cross_origin
 
 from pricing.compute.ec2.ec2_pricing import EC2
+from pricing.database.rds_pricing import RDS
+from pricing.management.cloudwatch_pricing import CloudWatch
 from pricing.network.elb_pricing import ELB
 from pricing.storage.s3.s3 import S3
 
@@ -110,4 +112,65 @@ def elb_price():
 
     return {"price": price}
 
+@price_routes.route('/pricing/rds', methods=['POST'])
+@cross_origin()
+def rds_price():
+    request_data = request.get_json()
 
+    region = request_data['region']
+
+    instance_type = request_data['instanceType']
+    deployment_option = request_data['deploymentOption']
+    volume_type = request_data['volumeType']
+    storage_amount = float(request_data['storageAmount'])
+
+    rds = RDS()
+
+    instance_cost = rds.get_db_instance_price(region, instance_type, deployment_option)
+    storage_cost = rds.get_storage_price(region, volume_type, deployment_option, storage_amount)
+
+    price = rds.calc_total_cost(instance_cost, storage_cost)
+
+    return {"price": price}
+
+@price_routes.route('/pricing/cloudwatch', methods=['POST'])
+@cross_origin()
+def cloudwatch_price():
+    request_data = request.get_json()
+
+    region = request_data['region']
+
+    num_metrics = request_data['numMetrics']
+    get_metric_data = request_data['getMetricData']
+    get_metric_widget_image = request_data['getMetricWidgetImage']
+    other_metric_requests = request_data['otherMetrics']
+    standard_logs = request_data['standardLogs']
+    logs_delivered_cloudwatch = request_data['logsDeliveredToCloudwatch']
+    log_storage = request_data['logStorage']
+    logs_delivered_s3 = request_data['logsDeliveredToS3']
+    parquet_conversion = request_data['parquetConversion']
+
+    cw = CloudWatch()
+    num_metrics_price = cw.get_metric_price(region, num_metrics)
+    get_metric_data_price = cw.api_get_metric_data(region, get_metric_data)
+    get_metric_widget_image_price = cw.api_get_metric_widget_image(region, get_metric_widget_image)
+    other_metric_requests_price = cw.api_get_metric_data(region, other_metric_requests)
+    standard_logs_price = cw.standard_log_ingested(region, standard_logs)
+    logs_delivered_cloudwatch_price = cw.logs_delivered(region, 'Amazon CloudWatch Logs', logs_delivered_cloudwatch)
+    logs_delivered_s3_price = cw.logs_delivered(region, 'Amazon S3', logs_delivered_s3)
+
+    if log_storage == "Yes":
+        log_storage_price = cw.log_storage(region, standard_logs, logs_delivered_cloudwatch)
+    else:
+        log_storage_price = 0
+
+    if parquet_conversion == "Enabled":
+        parquet_conversion_price = cw.parquet_conversion(region, logs_delivered_s3)
+    else:
+        parquet_conversion_price = 0
+
+    price = num_metrics_price + get_metric_data_price + get_metric_widget_image_price + other_metric_requests_price + \
+            standard_logs_price + logs_delivered_cloudwatch_price + logs_delivered_s3_price + log_storage_price + \
+            parquet_conversion_price
+
+    return {"price": round(price, 2)}

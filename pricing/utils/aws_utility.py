@@ -96,23 +96,23 @@ def get_products(service, filters):
 #     return instance_types
 #aws = AWS_Services()
 #test('AmazonEC2', 'instanceType')
-print(get_all_services())
-print(describe_service('AWSELB'))
-print(get_attribute_values('AWSELB', 'operation'))
-Filters=[
+#print(get_all_services())
+#print(describe_service('AmazonCloudWatch'))
+#print(get_attribute_values('AmazonCloudWatch', 'logsDestination'))
+
+filters=[
             {
                 'Type': 'TERM_MATCH',
                 'Field': 'location',
-                'Value': 'EU (Ireland)'
+                'Value': 'US East (Ohio)'
             },
             {
                 'Type': 'TERM_MATCH',
-                'Field': 'operation',
-                'Value': 'LoadBalancing:Network'
-            }
+                'Field': 'logsDestination',
+                'Value': 'Amazon CloudWatch Logs'
+            },
         ]
-
-get_products('AWSELB', Filters)
+#get_products('AmazonCloudWatch', filters)
 '''
 aws.get_all_services()
 aws.describe_service('AmazonEC2')

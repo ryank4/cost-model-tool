@@ -207,14 +207,14 @@ class CloudWatch:
 
         return price
 
-    def standard_log_ingested(self, region, num_metrics):
+    def standard_log_ingested(self, region, log_amount):
         filters = [
             {'Type': 'TERM_MATCH', 'Field': 'location', 'Value': region},
             {'Type': 'TERM_MATCH', 'Field': 'group', 'Value': 'Ingested Logs'}
         ]
 
-        price_per_metric = self.price_helper(filters)
-        price = price_per_metric * float(num_metrics)
+        price_per_log = self.price_helper(filters)
+        price = price_per_log * float(log_amount)
 
         return price
 
@@ -266,14 +266,14 @@ class CloudWatch:
 
         return price
 
-    def parquet_conversion(self, region, num_metrics):
+    def parquet_conversion(self, region, num_logs):
         filters = [
             {'Type': 'TERM_MATCH', 'Field': 'location', 'Value': region},
             {'Type': 'TERM_MATCH', 'Field': 'operation', 'Value': 'ParquetConversion'}
         ]
 
-        price_per_metric = self.price_helper(filters)
-        price = round(price_per_metric * float(num_metrics), 2)
+        price_per_log = self.price_helper(filters)
+        price = round(price_per_log * float(num_logs), 2)
 
         return price
 

@@ -103,4 +103,4 @@ def main():
     total = elb.calc_total_monthly_cost(nlb, nlcu)
     print(total)
 
-main()
+#main()

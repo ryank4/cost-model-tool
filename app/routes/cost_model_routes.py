@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import request, Blueprint
+from flask import request, Blueprint, jsonify
 from flask_cors import cross_origin
 
 import db.cost_model_db as db
@@ -16,37 +16,45 @@ def save():
     service_details = {}
 
     count = 0
-    for data in request_data:
-        if data['index'] == 'name':
-            cost_model['name'] = data['value']
-        # find the number of services by counting ids
-        if data['index'] == 'id':
-            # create new dict for each service
-            service = service_details[str(count)] = {}
-            key = data['index']
-            service[key] = data['value']
-            count += 1
+
+    try:
+        for data in request_data:
+            if data['index'] == 'name':
+                cost_model['name'] = data['value']
+            # find the number of services by counting ids
+            if data['index'] == '_id':
+                # create new dict for each service
+                service = service_details[str(count)] = {}
+                key = data['index']
+                service[key] = data['value']
+                count += 1
+            else:
+                # add values
+                key = data['index']
+                service[key] = data['value']
+                if data['index'] == 'price':
+                    total_cost += data['value']
+
+        if db.check_document_exists(cost_model['name']):
+            return {"response": "Cost Model Already Exists!"}
+
+        cost_model['serviceDetails'] = service_details
+        cost_model['time'] = datetime.now()
+        cost_model['total cost'] = total_cost
+
+        save_doc = db.save_cost_model(cost_model)
+
+        if save_doc:
+            res = {
+                "response": "Cost Model Saved Successfully"
+            }
         else:
-            # add values
-            key = data['index']
-            service[key] = data['value']
-            if data['index'] == 'price':
-                total_cost += data['value']
+            res = {
+                "response": "Error Saving Cost Model"
+            }
 
-    cost_model['serviceDetails'] = service_details
-    cost_model['time'] = datetime.now()
-    cost_model['total cost'] = total_cost
-
-    save_doc = db.save_cost_model(cost_model)
-
-    if save_doc:
-        res = {
-            "response": "Cost Model Saved Successfully"
-        }
-    else:
-        res = {
-            "response": "Error Saving Cost Model"
-        }
+    except Exception as e:
+        return jsonify(message=str(e)), 500
 
     return res
 

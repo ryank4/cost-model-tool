@@ -22,3 +22,9 @@ def load_cost_model_by_name(cost_model_name):
         return cost_model_col.find_one({"name": cost_model_name})
     except WriteError:
         return False
+
+def check_document_exists(cost_model_name):
+    if cost_model_col.count_documents({'name': cost_model_name}, limit=1):
+        return True
+    else:
+        return False
